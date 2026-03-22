@@ -59,6 +59,10 @@ func getHttpStatus(code int) int {
 		return http.StatusNotFound
 	case i18n.CodeInternalError:
 		return http.StatusInternalServerError
+	case i18n.CodeMaintenance:
+		return http.StatusServiceUnavailable
+	case i18n.CodeDataConflict:
+		return http.StatusConflict
 	default:
 		return http.StatusBadRequest
 	}
@@ -78,4 +82,5 @@ func NewErrorWithCause(code int, cause error, params ...any) error {
 
 func NewForbidden() error           { return NewError(i18n.CodeForbidden) }
 func NewRateLimit() error           { return NewError(i18n.CodeRateLimit) }
+func NewMaintenance() error         { return NewError(i18n.CodeMaintenance) }
 func NewInternal(cause error) error { return NewErrorWithCause(i18n.CodeInternalError, cause) }

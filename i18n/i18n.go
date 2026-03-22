@@ -14,11 +14,14 @@ const (
 // Common error codes (system level, shared across all projects)
 const (
 	CodeSuccess       = 0
+	CodeWelcome       = 1
 	CodeInternalError = 10001
 	CodeParamInvalid  = 10002
+	CodeParamFilterFieldNotAllowed = 10003
 	CodeRouteNotFound = 10011
 	CodeForbidden     = 10012
 	CodeRateLimit     = 10013
+	CodeMaintenance   = 10020
 
 	CodeTokenInvalid       = 20001
 	CodeTokenExpired       = 20002
@@ -28,7 +31,6 @@ const (
 	CodeDataNotFound  = 40101
 	CodeDataExists    = 40102
 	CodeDataConflict  = 40103
-	CodeStatusInvalid = 50001
 )
 
 // Catalog holds code->lang->message mappings
@@ -41,19 +43,21 @@ type Catalog struct {
 // defaultMessages are shared system-level messages
 var defaultMessages = map[int]map[string]string{
 	CodeSuccess:            {LangZh: "操作成功", LangEn: "Success"},
+	CodeWelcome:            {LangZh: "欢迎", LangEn: "Welcome"},
 	CodeInternalError:      {LangZh: "系统内部错误", LangEn: "Internal server error"},
 	CodeParamInvalid:       {LangZh: "参数无效", LangEn: "Invalid parameter"},
+	CodeParamFilterFieldNotAllowed: {LangZh: "不允许的筛选字段", LangEn: "Filter field not allowed"},
 	CodeRouteNotFound:      {LangZh: "页面不存在", LangEn: "Page not found"},
 	CodeForbidden:          {LangZh: "您还未登录", LangEn: "You are not logged in"},
 	CodeRateLimit:          {LangZh: "请求过于频繁，请稍后再试", LangEn: "Too many requests, please try again later"},
+	CodeMaintenance:        {LangZh: "系统维护中，请稍后再试", LangEn: "System maintenance, please try again later"},
 	CodeTokenInvalid:       {LangZh: "Token 无效", LangEn: "Invalid token"},
 	CodeTokenExpired:       {LangZh: "Token 已过期", LangEn: "Token expired"},
 	CodeTokenCreateFailed:  {LangZh: "Token 创建失败", LangEn: "Failed to create token"},
 	CodeTokenRefreshFailed: {LangZh: "Token 刷新失败", LangEn: "Failed to refresh token"},
 	CodeDataNotFound:       {LangZh: "数据不存在", LangEn: "Data not found"},
 	CodeDataExists:         {LangZh: "数据已存在", LangEn: "Data already exists"},
-	CodeDataConflict:       {LangZh: "数据已被修改，请刷新后重试", LangEn: "Data has been modified, please refresh"},
-	CodeStatusInvalid:      {LangZh: "当前状态不允许此操作", LangEn: "Invalid status transition"},
+	CodeDataConflict:       {LangZh: "数据已被修改（%s），请刷新后重试", LangEn: "Data has been modified (%s), please refresh"},
 }
 
 // NewCatalog creates a catalog with default system messages

@@ -13,6 +13,10 @@ const (
 	ctxKeyRefreshToken ctxKey = "refresh_token"
 )
 
+// DefaultLang is the fallback language when not set in context.
+// Set this at startup (e.g. ctxutil.DefaultLang = "en") to change.
+var DefaultLang = "zh"
+
 // Uid
 
 func WithUid(ctx context.Context, uid int64) context.Context {
@@ -69,12 +73,12 @@ func WithLang(ctx context.Context, lang string) context.Context {
 
 func GetLang(ctx context.Context) string {
 	if ctx == nil {
-		return "zh"
+		return DefaultLang
 	}
 	if lang, ok := ctx.Value(ctxKeyLang).(string); ok {
 		return lang
 	}
-	return "zh"
+	return DefaultLang
 }
 
 // AccessToken

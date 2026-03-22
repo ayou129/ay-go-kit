@@ -147,9 +147,18 @@ func TestIsConflictError(t *testing.T) {
 		t.Fatal("nil should not be conflict")
 	}
 	if !isConflictError(fmt.Errorf("token conflict: code=-1")) {
-		t.Fatal("should detect conflict")
+		t.Fatal("should detect code=-1")
+	}
+	if !isConflictError(fmt.Errorf("token conflict: code=-2")) {
+		t.Fatal("should detect code=-2")
+	}
+	if !isConflictError(fmt.Errorf("token conflict: code=-3")) {
+		t.Fatal("should detect code=-3")
 	}
 	if isConflictError(fmt.Errorf("some other error")) {
 		t.Fatal("should not detect non-conflict")
+	}
+	if isConflictError(fmt.Errorf("token conflict: code=-4")) {
+		t.Fatal("code=-4 should not be conflict")
 	}
 }

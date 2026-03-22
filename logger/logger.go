@@ -99,7 +99,9 @@ func (l *Logger) Debug(ctx context.Context, format string, v ...any) {
 	if !l.shouldLog(LevelDebug) {
 		return
 	}
-	l.debugLog.Output(2, l.formatMsg(ctx, format, v...))
+	if err := l.debugLog.Output(2, l.formatMsg(ctx, format, v...)); err != nil {
+		fmt.Fprintf(os.Stderr, "logger debug output failed: %v\n", err)
+	}
 }
 
 // Info logs a message at info level
@@ -107,7 +109,9 @@ func (l *Logger) Info(ctx context.Context, format string, v ...any) {
 	if !l.shouldLog(LevelInfo) {
 		return
 	}
-	l.infoLog.Output(2, l.formatMsg(ctx, format, v...))
+	if err := l.infoLog.Output(2, l.formatMsg(ctx, format, v...)); err != nil {
+		fmt.Fprintf(os.Stderr, "logger info output failed: %v\n", err)
+	}
 }
 
 // Warn logs a message at warn level
@@ -115,7 +119,9 @@ func (l *Logger) Warn(ctx context.Context, format string, v ...any) {
 	if !l.shouldLog(LevelWarn) {
 		return
 	}
-	l.warnLog.Output(2, l.formatMsg(ctx, format, v...))
+	if err := l.warnLog.Output(2, l.formatMsg(ctx, format, v...)); err != nil {
+		fmt.Fprintf(os.Stderr, "logger warn output failed: %v\n", err)
+	}
 }
 
 // Error logs a message at error level
@@ -123,7 +129,9 @@ func (l *Logger) Error(ctx context.Context, format string, v ...any) {
 	if !l.shouldLog(LevelError) {
 		return
 	}
-	l.errorLog.Output(2, l.formatMsg(ctx, format, v...))
+	if err := l.errorLog.Output(2, l.formatMsg(ctx, format, v...)); err != nil {
+		fmt.Fprintf(os.Stderr, "logger error output failed: %v\n", err)
+	}
 }
 
 // Global logger convenience (set once at startup)

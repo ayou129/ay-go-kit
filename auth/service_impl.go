@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"strings"
 
 	"github.com/ay/go-kit/ginx"
 	"github.com/ay/go-kit/i18n"
@@ -85,5 +84,7 @@ func isConflictError(err error) bool {
 		return false
 	}
 	msg := err.Error()
-	return strings.Contains(msg, "token conflict: code=")
+	return msg == "token conflict: code=-1" ||
+		msg == "token conflict: code=-2" ||
+		msg == "token conflict: code=-3"
 }

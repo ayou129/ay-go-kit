@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ay/go-kit/ctxutil"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -56,6 +57,9 @@ func ConfigFromEnv() Config {
 	return cfg
 }
 
+// SQLLogFunc is called after each SQL execution for logging
+type SQLLogFunc func(sql string, rows int64, traceID string, err error)
+
 // Open creates a new GORM database connection
 func Open(cfg Config) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(cfg.DSN), &gorm.Config{})
@@ -75,6 +79,38 @@ func Open(cfg Config) (*gorm.DB, error) {
 
 	return db, nil
 }
+
+// RegisterSQLCallbacks registers GORM callbacks for SQL logging
+func RegisterSQLCallbacks(db *gorm.DB, logFn SQLLogFunc) error {
+	callback := func(gdb *gorm.DB) {
+		sql := gdb.Dialector.Explain(gdb.Statement.SQL.String(), gdb.Statement.Vars...)
+		rows := gdb.Statement.RowsAffected
+		traceID := ""
+		if ctx := gdb.Statement.Context; ctx != nil {
+			traceID = ctxutil.GetTraceID(ctx)
+		}
+		logFn(sql, rows, traceID, gdb.Error)
+	}
+
+	type registrar struct {
+		register func(string, func(*gorm.DB)) error
+		name     string
+	}
+	for _, r := range []registrar{
+		{db.Callback().Query().After("gorm:query").Register, "query"},
+		{db.Callback().Create().After("gorm:create").Register, "create"},
+		{db.Callback().Update().After("gorm:update").Register, "update"},
+		{db.Callback().Delete().After("gorm:delete").Register, "delete"},
+		{db.Callback().Row().After("gorm:row").Register, "row"},
+		{db.Callback().Raw().After("gorm:raw").Register, "raw"},
+	} {
+		if err := r.register("gokit:log_sql", callback); err != nil {
+			return fmt.Errorf("register %s callback: %w", r.name, err)
+		}
+	}
+	return nil
+}
+
 
 // Close closes the database connection
 func Close(db *gorm.DB) error {
