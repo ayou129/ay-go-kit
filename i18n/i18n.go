@@ -28,9 +28,28 @@ const (
 	CodeTokenCreateFailed  = 20003
 	CodeTokenRefreshFailed = 20004
 
-	CodeDataNotFound  = 40101
-	CodeDataExists    = 40102
-	CodeDataConflict  = 40103
+	// Captcha 验证码
+	CodeCaptchaIncorrect    = 30001
+	CodeCaptchaTooManyTries = 30002
+	CodeCaptchaDoneInvalid  = 30003
+
+	// SMS 短信
+	CodeSmsBlacklisted = 30101
+	CodeSmsBusy        = 30102
+	CodeSmsCodeError   = 30103
+	CodeSmsVerifyLimit = 30104
+
+	// User 用户（auth 的自然延伸）
+	CodeUserNotFound     = 40001
+	CodeLoginFailed      = 40002
+	CodeAccountDisabled  = 40003
+	CodeOldPasswordWrong = 40004
+
+	// Data 通用数据校验
+	CodeDataNotFound           = 40101
+	CodeDataExists             = 40102
+	CodeDataConflict           = 40103
+	CodeCannotDeleteUsedRecord = 40104
 )
 
 // Catalog holds code->lang->message mappings
@@ -55,9 +74,21 @@ var defaultMessages = map[int]map[string]string{
 	CodeTokenExpired:       {LangZh: "Token 已过期", LangEn: "Token expired"},
 	CodeTokenCreateFailed:  {LangZh: "Token 创建失败", LangEn: "Failed to create token"},
 	CodeTokenRefreshFailed: {LangZh: "Token 刷新失败", LangEn: "Failed to refresh token"},
-	CodeDataNotFound:       {LangZh: "数据不存在", LangEn: "Data not found"},
-	CodeDataExists:         {LangZh: "数据已存在", LangEn: "Data already exists"},
-	CodeDataConflict:       {LangZh: "数据已被修改（%s），请刷新后重试", LangEn: "Data has been modified (%s), please refresh"},
+	CodeCaptchaIncorrect:       {LangZh: "验证码错误", LangEn: "Incorrect captcha"},
+	CodeCaptchaTooManyTries:    {LangZh: "验证码尝试次数过多", LangEn: "Too many captcha attempts"},
+	CodeCaptchaDoneInvalid:     {LangZh: "验证码凭证已失效", LangEn: "Captcha credential expired"},
+	CodeSmsBlacklisted:         {LangZh: "该手机号已被限制", LangEn: "Phone number is blacklisted"},
+	CodeSmsBusy:                {LangZh: "短信发送过于频繁，请稍后再试", LangEn: "SMS sent too frequently, please try later"},
+	CodeSmsCodeError:           {LangZh: "短信验证码错误", LangEn: "Incorrect SMS code"},
+	CodeSmsVerifyLimit:         {LangZh: "短信验证码尝试次数过多", LangEn: "Too many SMS verification attempts"},
+	CodeUserNotFound:           {LangZh: "用户不存在", LangEn: "User not found"},
+	CodeLoginFailed:            {LangZh: "密码错误", LangEn: "Login failed"},
+	CodeAccountDisabled:        {LangZh: "账号已被禁用", LangEn: "Account is disabled"},
+	CodeOldPasswordWrong:       {LangZh: "旧密码错误", LangEn: "Old password is incorrect"},
+	CodeDataNotFound:           {LangZh: "数据不存在", LangEn: "Data not found"},
+	CodeDataExists:             {LangZh: "数据已存在", LangEn: "Data already exists"},
+	CodeDataConflict:           {LangZh: "数据已被修改（%s），请刷新后重试", LangEn: "Data has been modified (%s), please refresh"},
+	CodeCannotDeleteUsedRecord: {LangZh: "该记录已被引用，无法删除", LangEn: "Cannot delete a record that is in use"},
 }
 
 // NewCatalog creates a catalog with default system messages

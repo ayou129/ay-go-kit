@@ -11,8 +11,11 @@ func TestNewCatalog_HasDefaultMessages(t *testing.T) {
 		CodeSuccess, CodeInternalError, CodeParamInvalid,
 		CodeRouteNotFound, CodeForbidden, CodeRateLimit,
 		CodeTokenInvalid, CodeTokenExpired, CodeTokenCreateFailed, CodeTokenRefreshFailed,
-		CodeDataNotFound, CodeDataExists, CodeDataConflict,
+		CodeDataNotFound, CodeDataExists, CodeDataConflict, CodeCannotDeleteUsedRecord,
 		CodeWelcome, CodeParamFilterFieldNotAllowed, CodeMaintenance,
+		CodeCaptchaIncorrect, CodeCaptchaTooManyTries, CodeCaptchaDoneInvalid,
+		CodeSmsBlacklisted, CodeSmsBusy, CodeSmsCodeError, CodeSmsVerifyLimit,
+		CodeUserNotFound, CodeLoginFailed, CodeAccountDisabled, CodeOldPasswordWrong,
 	}
 
 	for _, code := range codes {
