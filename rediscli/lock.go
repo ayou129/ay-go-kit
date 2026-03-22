@@ -2,11 +2,19 @@ package rediscli
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
+
+// uniqueValue generates a collision-resistant value: nanosecond timestamp + 8 random bytes
+func uniqueValue() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return fmt.Sprintf("%d_%x", time.Now().UnixNano(), b)
+}
 
 // DistributedLock implements a Redis-based distributed lock using SET NX EX
 type DistributedLock struct {
@@ -21,7 +29,7 @@ func NewDistributedLock(client *redis.Client, key string, ttl time.Duration) *Di
 	return &DistributedLock{
 		client: client,
 		key:    key,
-		value:  fmt.Sprintf("%d", time.Now().UnixNano()),
+		value:  uniqueValue(),
 		ttl:    ttl,
 	}
 }
@@ -104,7 +112,7 @@ func NewBatchLock(client *redis.Client, keys []string, ttl time.Duration) *Batch
 	return &BatchLock{
 		client: client,
 		keys:   keys,
-		value:  fmt.Sprintf("%d", time.Now().UnixNano()),
+		value:  uniqueValue(),
 		ttl:    ttl,
 	}
 }
