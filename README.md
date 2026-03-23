@@ -13,18 +13,26 @@
 | `i18n` | 国际化基础设施 |
 | `logger` | 结构化日志 |
 | `rediscli` | Redis 客户端封装 |
-| `timex` | 时间类型（TimeModel）+ 常量（TimeFormat / DateFormat）+ 上海时区 |
+| `timex` | 时间类型（TimeModel / DateModel）+ 常量（TimeFormat / DateFormat）+ 上海时区 |
 | `token` | Token 管理 |
 
 ## timex
 
-自定义时间类型，统一 JSON 序列化（`"2006-01-02 15:04:05"`）和数据库读写行为。
+自定义时间类型，统一 JSON 序列化和数据库读写行为。
+
+| 类型 | JSON 输出格式 | 用途 |
+|------|-------------|------|
+| `TimeModel` | `"2006-01-02 15:04:05"` | created_at / updated_at 等时间戳字段 |
+| `DateModel` | `"2006-01-02"` | birthday / 到期日等纯日期字段 |
 
 ```go
 import "github.com/ay/go-kit/timex"
 
-// 类型
-var t timex.TimeModel
+// 时间戳字段
+CreatedAt timex.TimeModel `gorm:"column:created_at" json:"created_at"`
+
+// 纯日期字段
+Birthday *timex.DateModel `gorm:"column:birthday" json:"birthday"`
 
 // 常量
 timex.TimeFormat       // "2006-01-02 15:04:05"
