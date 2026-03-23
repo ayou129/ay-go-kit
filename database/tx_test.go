@@ -53,3 +53,15 @@ func TestBaseRepository_GetDB_FallsBackToInjectedDB(t *testing.T) {
 		t.Errorf("expected nil tx from plain context, got %v", tx)
 	}
 }
+
+func TestNewTxRunner_ReturnsNonNil(t *testing.T) {
+	runner := NewTxRunner()
+	if runner == nil {
+		t.Error("NewTxRunner() returned nil")
+	}
+}
+
+func TestTxRunner_ImplementsInterface(t *testing.T) {
+	var _ TxRunner = NewTxRunner()
+	var _ TxRunner = &gormTxRunner{}
+}

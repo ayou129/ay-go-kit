@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	"gorm.io/gorm"
@@ -61,5 +63,32 @@ func TestOverrideGetDB(t *testing.T) {
 	restore()
 	if DB() != original {
 		t.Error("after restore, DB() should return original")
+	}
+}
+
+// ==================== IsRecordNotFound ====================
+
+func TestIsRecordNotFound_GormError(t *testing.T) {
+	if !IsRecordNotFound(gorm.ErrRecordNotFound) {
+		t.Error("expected true for gorm.ErrRecordNotFound")
+	}
+}
+
+func TestIsRecordNotFound_WrappedError(t *testing.T) {
+	wrapped := fmt.Errorf("query failed: %w", gorm.ErrRecordNotFound)
+	if !IsRecordNotFound(wrapped) {
+		t.Error("expected true for wrapped gorm.ErrRecordNotFound")
+	}
+}
+
+func TestIsRecordNotFound_OtherError(t *testing.T) {
+	if IsRecordNotFound(errors.New("some other error")) {
+		t.Error("expected false for non-record-not-found error")
+	}
+}
+
+func TestIsRecordNotFound_Nil(t *testing.T) {
+	if IsRecordNotFound(nil) {
+		t.Error("expected false for nil error")
 	}
 }

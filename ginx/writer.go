@@ -7,6 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ApiResponse is the unified API response format
+type ApiResponse struct {
+	Code int    `json:"code" example:"0"`
+	Msg  string `json:"msg" example:"成功"`
+	Data any    `json:"data"`
+}
+
 func getLang(c *gin.Context) string {
 	if lang, exists := c.Get("lang"); exists {
 		if s, ok := lang.(string); ok {

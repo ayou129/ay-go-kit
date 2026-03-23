@@ -2,9 +2,18 @@ package database
 
 import (
 	"context"
+	"errors"
 
 	"gorm.io/gorm"
 )
+
+// Scope 是 GORM 原生的查询修饰函数，用于组合 WHERE/ORDER/JOIN 等条件
+type Scope = func(*gorm.DB) *gorm.DB
+
+// IsRecordNotFound 检查是否是记录不存在错误（支持 errors.Is 链式判断）
+func IsRecordNotFound(err error) bool {
+	return errors.Is(err, gorm.ErrRecordNotFound)
+}
 
 var globalDB *gorm.DB
 
