@@ -47,3 +47,6 @@ func GenerateToken() string { return Generate(12, 36) }
 
 // GenerateTraceID creates a 32-char trace ID (8 time + 24 random)
 func GenerateTraceID() string { return Generate(8, 24) }
+
+// RandomString creates a cryptographically random string of given length
+func RandomString(n int) string { return randomString(n) }

@@ -9,14 +9,14 @@
 | `auth` | Token 鉴权（创建/校验/刷新/删除），Redis + Lua 实现 |
 | `cryptox` | 加解密工具（bcrypt 密码哈希） |
 | `ctxutil` | Context 工具（UserID / TenantID / TraceID / Lang / Token） |
-| `dbx` | PostgreSQL 连接 + 事务 + 分页 + 筛选（GORM + pgx） |
+| `dbx` | PostgreSQL 连接 + 事务 + 分页 + 筛选 + JSONB 类型（GORM + pgx） |
 | `ginx` | Gin 扩展（错误处理 / 响应封装 / 请求绑定清洗 / 分页查询 DTO） |
 | `i18n` | 国际化（错误码 → 多语言文案） |
 | `logger` | 结构化日志（TraceID 自动注入） |
 | `money` | 高精度金额计算（shopspring/decimal） |
 | `rediscli` | Redis 客户端（连接管理 + Lua 脚本缓存） |
 | `timex` | 时间类型（TimeModel / DateModel）+ 上海时区 |
-| `token` | Token / TraceID 生成 |
+| `token` | Token / TraceID / 随机字符串生成 |
 | `treex` | 通用树形结构构建 |
 
 ---
@@ -111,6 +111,23 @@ if dbx.IsRecordNotFound(err) {
     // 记录不存在
 }
 ```
+
+### JSONB 类型
+
+PostgreSQL JSONB 列的自动序列化/反序列化，实现 `driver.Valuer` + `sql.Scanner`。
+
+```go
+// model 中直接使用
+type Order struct {
+    AddressSnapshot dbx.JSONBObject  `gorm:"type:jsonb" json:"address_snapshot"`
+    Tags            dbx.JSONBArrayStr `gorm:"type:jsonb" json:"tags"`
+    Extra           dbx.JSONBArray   `gorm:"type:jsonb" json:"extra"`
+}
+```
+
+- `JSONBObject` — `map[string]any`，存储 JSON 对象
+- `JSONBArray` — `[]any`，存储任意类型数组
+- `JSONBArrayStr` — `[]string`，存储字符串数组（无需类型断言）
 
 ### 测试
 
@@ -258,6 +275,148 @@ timex.ShanghaiLocation // *time.Location
 
 ---
 
+## token
+
+Token / TraceID / 随机字符串生成，基于 `crypto/rand`。
+
+```go
+import "github.com/ay/go-kit/token"
+
+tok := token.GenerateToken()     // 48 字符 (12 时间 + 36 随机)
+tid := token.GenerateTraceID()   // 32 字符 (8 时间 + 24 随机)
+s := token.RandomString(6)       // 6 位随机字符串 (a-zA-Z0-9)
+custom := token.Generate(4, 8)   // 自定义：4 位时间 + 8 位随机
+```
+
+---
+
+## ctxutil
+
+Context 值传播工具，所有 With/Get 成对使用。
+
+```go
+import "github.com/ay/go-kit/ctxutil"
+
+ctx = ctxutil.WithUid(ctx, 42)
+uid := ctxutil.GetUid(ctx)              // 42（未设置返回 0）
+
+ctx = ctxutil.WithTenantID(ctx, 1)
+ctx = ctxutil.WithTraceID(ctx, "abc123")
+ctx = ctxutil.WithLang(ctx, "en")       // 默认 ctxutil.DefaultLang = "zh"
+ctx = ctxutil.WithAccessToken(ctx, "tok_xxx")
+ctx = ctxutil.WithRefreshToken(ctx, "ref_xxx")
+```
+
+---
+
+## logger
+
+结构化日志，自动从 context 提取 TraceID。
+
+```go
+import "github.com/ay/go-kit/logger"
+
+// 初始化
+log, _ := logger.New(logger.ConfigFromEnv())  // LOG_LEVEL + LOG_PATH
+logger.SetGlobal(log)
+defer log.Close()
+
+// 实例方法
+log.Info(ctx, "user %d logged in", uid)
+
+// 全局便捷函数
+logger.Debug(ctx, "detail: %v", v)
+logger.Info(ctx, "ok")
+logger.Warn(ctx, "slow query: %dms", ms)
+logger.Error(ctx, "failed: %v", err)
+```
+
+---
+
+## i18n
+
+错误码 → 多语言文案映射。
+
+```go
+import "github.com/ay/go-kit/i18n"
+
+// 初始化
+cat := i18n.NewCatalog("zh")
+cat.Register(i18n.CodeParamInvalid, map[string]string{
+    "zh": "参数不合法",
+    "en": "Invalid parameter",
+})
+i18n.SetGlobal(cat)
+
+// 获取文案（自动 fallback 到默认语言）
+msg := i18n.GetLangMsg(i18n.CodeParamInvalid, "en")  // "Invalid parameter"
+```
+
+预定义错误码：`CodeInternalError`(10001) / `CodeParamInvalid`(10002) / `CodeTokenInvalid`(20001) / `CodeUserNotFound`(40001) 等 20+ 个。
+
+---
+
+## rediscli
+
+Redis 客户端，支持 Lua 脚本 SHA 缓存和分布式锁。
+
+```go
+import "github.com/ay/go-kit/rediscli"
+
+// 连接
+client, _ := rediscli.Open(rediscli.ConfigFromEnv())  // REDIS_ADDR / REDIS_PASSWORD / REDIS_DB
+defer client.Close()
+
+// 原生客户端
+rdb := client.Redis()
+
+// Lua 脚本（自动 EVALSHA + 回退 EVAL）
+result, _ := client.ExecuteLuaScript(script, keys, args...)
+
+// 分布式锁（单 key）
+lock := rediscli.NewDistributedLock(rdb, "order:123", 10*time.Second)
+_ = lock.Lock(ctx, 5*time.Second)   // 阻塞等待
+defer lock.Unlock(ctx)
+_ = lock.Extend(ctx, 5*time.Second) // 续期
+
+// 批量锁（多 key 原子获取）
+batch := rediscli.NewBatchLock(rdb, []string{"a", "b"}, 10*time.Second)
+_ = batch.Lock(ctx, 5*time.Second)
+defer batch.Unlock(ctx)
+```
+
+---
+
+## auth
+
+Token 鉴权服务，Redis + Lua 实现。
+
+```go
+import "github.com/ay/go-kit/auth"
+
+// 初始化
+repo := auth.NewRedisRepository(redisClient)
+svc := auth.NewService(repo, auth.ConfigFromEnv())  // TOKEN_PREFIX / ACCESS_EXPIRE / REFRESH_EXPIRE
+
+// 创建 token 对
+tokens, _ := svc.Create(ctx, userID, "admin")  // → *auth.Tokens{AccessToken, RefreshToken}
+
+// 校验（返回 userID）
+uid, _ := svc.Validate(ctx, accessToken, refreshToken, "admin")
+
+// 刷新
+newTokens, _ := svc.Refresh(ctx, accessToken, refreshToken, "admin")
+
+// 登出
+_ = svc.Delete(ctx, userID, "admin")
+
+// 在线状态
+status, _ := svc.GetUserOnlineStatus(ctx, []int64{1, 2}, "admin")
+// map[int64]auth.UserOnlineInfo{1: {LastAccess: ts, IsOnline: true}}
+```
+
+---
+
 ## 包依赖关系
 
 ```
@@ -267,7 +426,7 @@ logger   ←  ctxutil
    ↑
 dbx ←  logger, gorm          (不依赖 gin)
    ↑
-ginx     ←  dbx, i18n, gin
+ginx     ←  dbx, i18n, gin, token, ctxutil
    ↑
 auth     ←  ginx, rediscli
 
