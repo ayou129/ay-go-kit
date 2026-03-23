@@ -9,7 +9,7 @@
 | `auth` | Token 鉴权（创建/校验/刷新/删除），Redis + Lua 实现 |
 | `cryptox` | 加解密工具（bcrypt 密码哈希） |
 | `ctxutil` | Context 工具（UserID / TenantID / TraceID / Lang / Token） |
-| `database` | PostgreSQL 连接 + 事务 + 分页 + 筛选（GORM + pgx） |
+| `dbx` | PostgreSQL 连接 + 事务 + 分页 + 筛选（GORM + pgx） |
 | `ginx` | Gin 扩展（错误处理 / 响应封装 / 请求绑定清洗 / 分页查询 DTO） |
 | `i18n` | 国际化（错误码 → 多语言文案） |
 | `logger` | 结构化日志（TraceID 自动注入） |
@@ -21,47 +21,48 @@
 
 ---
 
-## database
+## dbx
 
 ### 连接管理
 
 ```go
-import "github.com/ay/go-kit/database"
+import "github.com/ay/go-kit/dbx"
 
 // 启动时初始化
-db, _ := database.Open(database.ConfigFromEnv())
-database.SetGlobal(db)
+db, _ := dbx.Open(dbx.ConfigFromEnv())
+dbx.SetGlobal(db)
 
 // 任意位置获取（自动感知事务）
-db := database.GetDB(ctx)
+db := dbx.GetDB(ctx)
 ```
 
-### 事务 — TxRunner
+### 事务
 
-Service 层通过依赖注入获取 `TxRunner`，事务内 `database.GetDB(txCtx)` 自动返回事务连接。
+事务内 `dbx.GetDB(txCtx)` 自动返回事务连接，repo 无感知。
+
+**推荐：包函数直接调用**（适合集成测试 + txdb 的项目）
 
 ```go
-// 创建
-txRunner := database.NewTxRunner()
-
-// Service 注入
-type orderService struct {
-    repo repository.OrderRepository
-    tx   database.TxRunner
-}
-
-// 使用
 func (s *orderService) Create(ctx context.Context, req CreateReq) error {
-    return s.tx.Transaction(ctx, func(txCtx context.Context) error {
-        // database.GetDB(txCtx) 自动返回 tx
+    return dbx.Transaction(ctx, dbx.GetDB(ctx), func(txCtx context.Context) error {
+        // dbx.GetDB(txCtx) 自动返回 tx，repo 无感知
         return s.repo.Create(txCtx, &model.Order{...})
     })
 }
+```
 
-// 测试 mock
-type mockTxRunner struct{}
-func (m *mockTxRunner) Transaction(ctx context.Context, fn func(context.Context) error) error {
-    return fn(ctx)
+**可选：TxRunner 接口注入**（适合需要 mock 事务的单元测试场景）
+
+```go
+type orderService struct {
+    repo repository.OrderRepository
+    tx   dbx.TxRunner
+}
+
+func (s *orderService) Create(ctx context.Context, req CreateReq) error {
+    return s.tx.Transaction(ctx, func(txCtx context.Context) error {
+        return s.repo.Create(txCtx, &model.Order{...})
+    })
 }
 ```
 
@@ -84,9 +85,9 @@ type PageResult[T any] struct {
 }
 
 // 使用：Service 层直接调用
-func (s *roleService) ListPage(ctx context.Context, q ginx.PageQueryDTO) (*database.PageResult[model.Role], error) {
+func (s *roleService) ListPage(ctx context.Context, q ginx.PageQueryDTO) (*dbx.PageResult[model.Role], error) {
     scopes := q.ToScopes(ctx, nil)
-    return database.FindByPage[model.Role](ctx, q.PageQuery, scopes...)
+    return dbx.FindByPage[model.Role](ctx, q.PageQuery, scopes...)
 }
 ```
 
@@ -99,14 +100,14 @@ func (s *roleService) ListPage(ctx context.Context, q ginx.PageQueryDTO) (*datab
 //         like / not_like / starts_with / ends_with / in / not_in
 //         is_null / is_not_null
 
-scopes := database.ToScopes(ctx, filters, sorts, allowedFields)
+scopes := dbx.ToScopes(ctx, filters, sorts, allowedFields)
 // allowedFields: nil=不限制, map[string]bool=白名单
 ```
 
 ### 错误判断
 
 ```go
-if database.IsRecordNotFound(err) {
+if dbx.IsRecordNotFound(err) {
     // 记录不存在
 }
 ```
@@ -115,7 +116,7 @@ if database.IsRecordNotFound(err) {
 
 ```go
 // txdb 事务回滚隔离
-restore := database.OverrideGetDB(txdbDB)
+restore := dbx.OverrideGetDB(txdbDB)
 defer restore()
 ```
 
@@ -143,7 +144,7 @@ type LoginReq struct {
 
 ### 分页查询 DTO
 
-封装 `database.PageQuery` + 筛选排序 + gin 绑定。
+封装 `dbx.PageQuery` + 筛选排序 + gin 绑定。
 
 ```go
 var query ginx.PageQueryDTO
@@ -151,7 +152,7 @@ if err := query.Bind(c); err != nil { ... }
 // 自动修正：page<1→1, pageSize<1→20, 默认排序 id desc
 
 scopes := query.ToScopes(ctx, allowedFields)
-result, err := database.FindByPage[model.Role](ctx, query.PageQuery, scopes...)
+result, err := dbx.FindByPage[model.Role](ctx, query.PageQuery, scopes...)
 ```
 
 ### 响应
@@ -264,9 +265,9 @@ ctxutil  ←  零依赖
    ↑
 logger   ←  ctxutil
    ↑
-database ←  logger, gorm          (不依赖 gin)
+dbx ←  logger, gorm          (不依赖 gin)
    ↑
-ginx     ←  database, i18n, gin
+ginx     ←  dbx, i18n, gin
    ↑
 auth     ←  ginx, rediscli
 

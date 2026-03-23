@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ay/go-kit/database"
+	"github.com/ay/go-kit/dbx"
 )
 
 func TestPageQueryDTO_Normalize_DefaultSort(t *testing.T) {
@@ -28,7 +28,7 @@ func TestPageQueryDTO_Normalize_DefaultSort(t *testing.T) {
 
 func TestPageQueryDTO_Normalize_FixInvalidSort(t *testing.T) {
 	q := &PageQueryDTO{
-		Sorts: []database.SortOption{
+		Sorts: []dbx.SortOption{
 			{Field: "", Order: "invalid"},
 		},
 	}
@@ -44,11 +44,11 @@ func TestPageQueryDTO_Normalize_FixInvalidSort(t *testing.T) {
 
 func TestPageQueryDTO_Normalize_PreservesValidSort(t *testing.T) {
 	q := &PageQueryDTO{
-		Sorts: []database.SortOption{
+		Sorts: []dbx.SortOption{
 			{Field: "created_at", Order: "asc"},
 		},
 	}
-	q.PageQuery = database.PageQuery{Page: 2, PageSize: 50}
+	q.PageQuery = dbx.PageQuery{Page: 2, PageSize: 50}
 	q.normalize()
 
 	if q.Sorts[0].Field != "created_at" || q.Sorts[0].Order != "asc" {
