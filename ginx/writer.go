@@ -40,11 +40,11 @@ func Success(c *gin.Context, data ...any) {
 }
 
 // SuccessWithMsg writes a success response with custom message code
-func SuccessWithMsg(c *gin.Context, code int, data any, params ...any) {
+func SuccessWithMsg(c *gin.Context, msgCode int, data any, params ...any) {
 	lang := getLang(c)
 	c.JSON(http.StatusOK, ApiResponse{
-		Code: code,
-		Msg:  i18n.GetLangMsg(code, lang, params...),
+		Code: i18n.CodeSuccess,
+		Msg:  i18n.GetLangMsg(msgCode, lang, params...),
 		Data: data,
 	})
 }

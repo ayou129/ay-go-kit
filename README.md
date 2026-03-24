@@ -176,7 +176,7 @@ result, err := dbx.FindByPage[model.Role](ctx, query.PageQuery, scopes...)
 
 ```go
 ginx.Success(c, data)           // {code:0, msg:"成功", data: ...}
-ginx.SuccessWithMsg(c, code, data)
+ginx.SuccessWithMsg(c, msgCode, data) // code 永远为 0，msgCode 仅用于查 i18n 消息
 ```
 
 ### 错误
