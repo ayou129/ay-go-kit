@@ -28,6 +28,8 @@ func CommonMiddleware(logFn LogFunc) gin.HandlerFunc {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		} else {
 			allowList := strings.Split(strings.TrimSpace(os.Getenv("CORS_ORIGINS")), ",")
+			allowCreds := strings.EqualFold(os.Getenv("CORS_ALLOW_CREDENTIALS"), "true")
+
 			matched := false
 			if origin != "" {
 				for _, o := range allowList {
@@ -44,13 +46,16 @@ func CommonMiddleware(logFn LogFunc) gin.HandlerFunc {
 			if matched {
 				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 				c.Writer.Header().Add("Vary", "Origin")
+				if allowCreds {
+					c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+				}
 			} else {
 				c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			}
 		}
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, accept, origin, Cache-Control, X-Requested-With, Token-Access, Token-Refresh")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, accept, origin, Cache-Control, X-Requested-With, Token-Access, Token-Refresh, X-Skip-Auth-Refresh")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
-		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length, Trace-Id, Server")
+		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length, Trace-Id, Server, Content-Disposition")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
@@ -63,7 +68,7 @@ func CommonMiddleware(logFn LogFunc) gin.HandlerFunc {
 		// Lang
 		lang := c.Query("lang")
 		if lang == "" {
-			lang = "zh"
+			lang = ctxutil.DefaultLang
 		}
 
 		// Token headers
@@ -83,8 +88,11 @@ func CommonMiddleware(logFn LogFunc) gin.HandlerFunc {
 		c.Request = c.Request.WithContext(ctx)
 		c.Set("lang", lang)
 
-		// Response header
+		// Response headers
 		c.Writer.Header().Set("Trace-Id", traceID)
+		if author := os.Getenv("AUTHOR"); author != "" {
+			c.Writer.Header().Set("Server", author)
+		}
 
 		// Process + log
 		startTime := time.Now()
