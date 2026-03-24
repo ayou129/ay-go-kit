@@ -43,7 +43,9 @@ func SanitizeMap(m map[string]any) {
 //   - 合并连续空格为单个
 //
 // 支持嵌套 struct 和指针字段，跳过 nil 指针。
-// 密码等敏感字段通过 sanitize:"-" tag 跳过。
+// 通过 sanitize tag 控制行为：
+//   - sanitize:"-"         跳过清洗（密码等敏感字段）
+//   - sanitize:"multiline" 保留换行符，按行清洗（Markdown / 富文本）
 func SanitizeStrings(v any) {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() == reflect.Ptr {
@@ -66,15 +68,19 @@ func sanitizeStruct(rv reflect.Value) {
 			continue
 		}
 
-		// sanitize:"-" 跳过（密码等敏感字段）
-		if structField.Tag.Get("sanitize") == "-" {
+		tag := structField.Tag.Get("sanitize")
+		if tag == "-" {
 			continue
 		}
 
 		switch field.Kind() {
 		case reflect.String:
 			if field.CanSet() {
-				field.SetString(CleanString(field.String()))
+				if tag == "multiline" {
+					field.SetString(CleanMultilineString(field.String()))
+				} else {
+					field.SetString(CleanString(field.String()))
+				}
 			}
 		case reflect.Struct:
 			sanitizeStruct(field)
@@ -125,6 +131,32 @@ func CleanString(s string) string {
 	result := strings.TrimSpace(b.String())
 	result = collapseSpaces(result)
 	return result
+}
+
+// CleanMultilineString 清洗多行字符串，保留换行符结构：
+//  1. 按 \n 分行，每行执行 CleanString 清洗
+//  2. 去除末尾连续空行
+//
+// 适用于 Markdown、富文本等需要保留换行的场景。
+func CleanMultilineString(s string) string {
+	if s == "" {
+		return s
+	}
+	// 统一换行符为 \n
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		lines[i] = CleanString(line)
+	}
+
+	// 去除末尾连续空行
+	for len(lines) > 0 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 func isZeroWidth(r rune) bool {

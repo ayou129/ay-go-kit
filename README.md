@@ -157,6 +157,11 @@ type LoginReq struct {
     Phone    string `json:"phone"`
     Password string `json:"password" sanitize:"-"`
 }
+
+// 保留换行（Markdown / 富文本）
+type ProfileReq struct {
+    Content string `json:"content" sanitize:"multiline"`
+}
 ```
 
 ### 分页查询 DTO
