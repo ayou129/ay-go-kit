@@ -14,6 +14,7 @@
 | `i18n` | 国际化（错误码 → 多语言文案） |
 | `logger` | 结构化日志（TraceID 自动注入） |
 | `money` | 高精度金额计算（shopspring/decimal） |
+| `ratelimit` | 滑动窗口限流（Redis ZSET + Lua，含 Gin 中间件） |
 | `rediscli` | Redis 客户端（连接管理 + Lua 脚本缓存） |
 | `timex` | 时间类型（TimeModel / DateModel）+ 上海时区 |
 | `token` | Token / TraceID / 随机字符串生成 |
@@ -399,9 +400,12 @@ Token 鉴权服务，Redis + Lua 实现。
 ```go
 import "github.com/ay/go-kit/auth"
 
-// 初始化
-repo := auth.NewRedisRepository(redisClient)
-svc := auth.NewService(repo, auth.ConfigFromEnv())  // TOKEN_PREFIX / ACCESS_EXPIRE / REFRESH_EXPIRE
+// 初始化（读取 PROJECT_NAME 环境变量，如 "tc"）
+cfg := auth.ConfigFromEnv()  // PROJECT_NAME / TOKEN_ACCESS_EXPIRE / TOKEN_REFRESH_EXPIRE
+repo := auth.NewRedisRepository(cfg, redisClient, logFn)
+svc := auth.NewService(repo, logFn)
+// Redis key 格式: {project}_auth_{scene}_{key_type}:{value}
+// 例: tc_auth_admin_user:123, tc_auth_admin_access_token:abc...
 
 // 创建 token 对
 tokens, _ := svc.Create(ctx, userID, "admin")  // → *auth.Tokens{AccessToken, RefreshToken}
@@ -422,6 +426,70 @@ status, _ := svc.GetUserOnlineStatus(ctx, []int64{1, 2}, "admin")
 
 ---
 
+## ratelimit
+
+滑动窗口限流，Redis ZSET + Lua 原子操作，含 Gin 中间件。
+
+```go
+import "github.com/ay/go-kit/ratelimit"
+
+// 创建限流器（project 隔离多项目共享 Redis）
+limiter := ratelimit.New(redisClient, "tc")  // Redis key: tc_ratelimit_{业务key}
+
+// 直接调用（Service 层可用）
+result, _ := limiter.Allow(ctx, "login:1.2.3.4", ratelimit.Rate{
+    Limit:  5,
+    Window: time.Minute,
+})
+// result.Allowed / result.Remaining / result.RetryAfter / result.Total
+
+// 只读查询（不计入请求）
+status, _ := limiter.Peek(ctx, "login:1.2.3.4", ratelimit.Rate{Limit: 5, Window: time.Minute})
+
+// 读取窗口内所有请求时间戳（监控/调试）
+entries, _ := limiter.Entries(ctx, "login:1.2.3.4", ratelimit.Rate{Limit: 5, Window: time.Minute})
+
+// 重置
+limiter.Reset(ctx, "login:1.2.3.4")
+```
+
+### Gin 中间件
+
+```go
+// 按 IP 限流（全局）
+r.Use(ratelimit.GinMiddleware(limiter, ratelimit.GinConfig{
+    KeyFunc:   ratelimit.KeyByIP("api"),
+    Rate:      ratelimit.Rate{Limit: 60, Window: time.Minute},
+    ErrorCode: i18n.CodeRateLimited,
+}))
+
+// 按请求头限流（API Key 维度）
+v1.Use(ratelimit.GinMiddleware(limiter, ratelimit.GinConfig{
+    KeyFunc:   ratelimit.KeyByHeader("rk", "X-Api-Key"),
+    Rate:      ratelimit.Rate{Limit: 30, Window: time.Minute},
+    ErrorCode: i18n.CodeRateLimited,
+    Skip:      func(c *gin.Context) bool { return false }, // 可选跳过条件
+}))
+```
+
+内置 KeyFunc（独立使用）：`KeyByIP` / `KeyByHeader` / `KeyByParam`
+
+组合使用：`KeyCompose` + 维度提取器 `PartByIP` / `PartByHeader` / `PartByParam`
+
+```go
+// 组合多维度限流（IP + 用户名）
+ratelimit.KeyCompose("login", ratelimit.PartByIP(), ratelimit.PartByHeader("X-User"))
+// 生成 key: "login:ip:1.2.3.4:hdr:alice"
+```
+
+响应头：
+- 通过时：`X-RateLimit-Limit` + `X-RateLimit-Remaining`
+- 拒绝时：额外 `Retry-After`（秒）
+
+Redis 故障时自动放行，不阻塞业务。
+
+---
+
 ## 包依赖关系
 
 ```
@@ -431,9 +499,10 @@ logger   ←  ctxutil
    ↑
 dbx ←  logger, gorm          (不依赖 gin)
    ↑
-ginx     ←  dbx, i18n, gin, token, ctxutil
+ginx      ←  dbx, i18n, gin, token, ctxutil
    ↑
-auth     ←  ginx, rediscli
+auth      ←  ginx, rediscli
+ratelimit ←  ginx, rediscli
 
 cryptox  ←  golang.org/x/crypto   (独立)
 money    ←  shopspring/decimal     (独立)
