@@ -2,8 +2,8 @@ package auth
 
 // Tokens holds an access/refresh token pair
 type Tokens struct {
-	AccessToken  string
-	RefreshToken string
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 // UserOnlineInfo describes a user's online status
