@@ -47,7 +47,7 @@ func (r *redisRepository) Create(ctx context.Context, userID int64, scene string
 	tokens.RefreshToken = token.GenerateToken()
 
 	keys := []string{fmt.Sprintf("%d", userID), sessionID, tokens.AccessToken, tokens.RefreshToken}
-	args := []any{r.cfg.Prefix, scene, r.cfg.AccessExpire, r.cfg.RefreshExpire}
+	args := []any{r.cfg.Project, scene, r.cfg.AccessExpire, r.cfg.RefreshExpire}
 
 	result, err := r.client.ExecuteLuaScript(tokenCreateLua, keys, args...)
 	if err != nil {
@@ -74,7 +74,7 @@ func (r *redisRepository) Create(ctx context.Context, userID int64, scene string
 
 func (r *redisRepository) Validate(ctx context.Context, accessToken, refreshToken, scene string) (int64, error) {
 	keys := []string{accessToken, refreshToken}
-	args := []any{r.cfg.Prefix, scene, r.cfg.AccessExpire}
+	args := []any{r.cfg.Project, scene, r.cfg.AccessExpire}
 
 	result, err := r.client.ExecuteLuaScript(tokenValidateLua, keys, args...)
 	if err != nil {
@@ -128,7 +128,7 @@ func (r *redisRepository) Refresh(ctx context.Context, oldAccessToken, oldRefres
 	newTokens.RefreshToken = token.GenerateToken()
 
 	keys := []string{oldAccessToken, oldRefreshToken, newSessionID, newTokens.AccessToken, newTokens.RefreshToken}
-	args := []any{r.cfg.Prefix, scene, r.cfg.AccessExpire, r.cfg.RefreshExpire}
+	args := []any{r.cfg.Project, scene, r.cfg.AccessExpire, r.cfg.RefreshExpire}
 
 	result, err := r.client.ExecuteLuaScript(tokenRefreshLua, keys, args...)
 	if err != nil {
@@ -158,7 +158,7 @@ func (r *redisRepository) Refresh(ctx context.Context, oldAccessToken, oldRefres
 
 func (r *redisRepository) Delete(ctx context.Context, userID int64, scene string) error {
 	keys := []string{fmt.Sprintf("%d", userID)}
-	args := []any{r.cfg.Prefix, scene}
+	args := []any{r.cfg.Project, scene}
 
 	result, err := r.client.ExecuteLuaScript(tokenDeleteLua, keys, args...)
 	if err != nil {
@@ -181,7 +181,7 @@ func (r *redisRepository) Delete(ctx context.Context, userID int64, scene string
 }
 
 func (r *redisRepository) GetUserOnlineStatus(ctx context.Context, userIDs []int64, scene string) (map[int64]UserOnlineInfo, error) {
-	prefix := r.cfg.Prefix + "#" + scene + "#"
+	prefix := r.cfg.Project + "_auth_" + scene + "_"
 	rdb := r.client.Redis()
 	bgCtx := context.Background()
 	result := make(map[int64]UserOnlineInfo, len(userIDs))

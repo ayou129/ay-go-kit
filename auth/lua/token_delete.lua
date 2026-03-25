@@ -1,7 +1,7 @@
--- ARGV: [prefix, scene]
+-- ARGV: [project, scene]
 -- KEYS: [userId]
 
-local prefix = ARGV[1]..'#'..ARGV[2]..'#'
+local prefix = ARGV[1]..'_auth_'..ARGV[2]..'_'
 local user_id = KEYS[1]
 
 local user_key = prefix..'user:'..user_id

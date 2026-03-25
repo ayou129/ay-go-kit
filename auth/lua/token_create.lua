@@ -1,7 +1,7 @@
--- ARGV: [prefix, scene, tokenExpire, refreshExpire]
+-- ARGV: [project, scene, tokenExpire, refreshExpire]
 -- KEYS: [userId, newSessionId, newAccessToken, newRefreshToken]
 
-local prefix = ARGV[1]..'#'..ARGV[2]..'#'
+local prefix = ARGV[1]..'_auth_'..ARGV[2]..'_'
 local token_expire = tonumber(ARGV[3])
 local refresh_expire = tonumber(ARGV[4])
 local user_id = KEYS[1]

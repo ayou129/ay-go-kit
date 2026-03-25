@@ -7,28 +7,32 @@ import (
 
 // Config holds token service configuration
 type Config struct {
-	Prefix        string // Redis key prefix
+	Project       string // 子项目标识（如 "tc"、"flowi"），Redis key 前缀: {project}_auth_{scene}_{key}
 	AccessExpire  int    // Access token TTL in seconds
 	RefreshExpire int    // Refresh token TTL in seconds
 }
 
 // DefaultConfig returns config with sensible defaults
-func DefaultConfig(prefix string) Config {
-	if prefix == "" {
-		prefix = "app_token_"
+func DefaultConfig(project string) Config {
+	if project == "" {
+		project = "global"
 	}
 	return Config{
-		Prefix:        prefix,
+		Project:       project,
 		AccessExpire:  7200,   // 2 hours
 		RefreshExpire: 604800, // 7 days
 	}
 }
 
 // ConfigFromEnv reads token config from environment variables
+//
+//	PROJECT_NAME: 子项目标识（如 "tc"），默认 "global"
+//	TOKEN_ACCESS_EXPIRE: access token 过期秒数，默认 7200
+//	TOKEN_REFRESH_EXPIRE: refresh token 过期秒数，默认 604800
 func ConfigFromEnv() Config {
-	prefix := os.Getenv("TOKEN_PREFIX")
-	if prefix == "" {
-		prefix = "app_token_"
+	project := os.Getenv("PROJECT_NAME")
+	if project == "" {
+		project = "global"
 	}
 	accessExpire := 7200
 	if val := os.Getenv("TOKEN_ACCESS_EXPIRE"); val != "" {
@@ -42,5 +46,5 @@ func ConfigFromEnv() Config {
 			refreshExpire = parsed
 		}
 	}
-	return Config{Prefix: prefix, AccessExpire: accessExpire, RefreshExpire: refreshExpire}
+	return Config{Project: project, AccessExpire: accessExpire, RefreshExpire: refreshExpire}
 }
