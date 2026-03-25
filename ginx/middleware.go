@@ -53,7 +53,7 @@ func CommonMiddleware(logFn LogFunc) gin.HandlerFunc {
 				c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			}
 		}
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, accept, origin, Cache-Control, X-Requested-With, Token-Access, Token-Refresh, X-Skip-Auth-Refresh")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, Authorization, X-CSRF-Token, accept, origin, Cache-Control, X-Requested-With, Token-Access, Token-Refresh, X-Skip-Auth-Refresh")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length, Trace-Id, Server, Content-Disposition")
 
