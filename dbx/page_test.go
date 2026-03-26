@@ -17,7 +17,7 @@ func TestPageQuery_Normalize(t *testing.T) {
 		{"negative page", PageQuery{Page: -5, PageSize: 10}, 1, 10},
 		{"pageSize < 1", PageQuery{Page: 1, PageSize: 0}, 1, 20},
 		{"negative pageSize", PageQuery{Page: 1, PageSize: -1}, 1, 20},
-		{"pageSize > 100", PageQuery{Page: 1, PageSize: 200}, 1, 100},
+		{"pageSize > 100 preserved", PageQuery{Page: 1, PageSize: 200}, 1, 200},
 		{"both invalid", PageQuery{Page: -1, PageSize: -1}, 1, 20},
 	}
 

@@ -11,16 +11,13 @@ type PageQuery struct {
 	PageSize int `json:"page_size"`
 }
 
-// Normalize 自动修正分页参数到合法范围
+// Normalize 自动修正分页参数到合法范围（仅兜底默认值，不限制上限，由下游自行约束）
 func (q *PageQuery) Normalize() {
 	if q.Page < 1 {
 		q.Page = 1
 	}
 	if q.PageSize < 1 {
 		q.PageSize = 20
-	}
-	if q.PageSize > 100 {
-		q.PageSize = 100
 	}
 }
 
