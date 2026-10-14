@@ -6,8 +6,7 @@
 
 ```
 go-kit（基础设施库）
-├── 项目 A：/Users/ay/Desktop/app/ay-tianchang56/backend_go
-├── 项目 B：/Users/ay/Desktop/app/ay-flowi/backend
+├── 项目 A：../ay-tianchang56/backend
 └── 未来项目...
 ```
 
@@ -20,7 +19,7 @@ go-kit 是多项目共享的底层库，任何改动都会影响所有下游项�
 在对任何项目做迁移或改动之前，先确认 go-kit 当前状态：
 
 1. **阅读 README.md** — 了解所有包的用途和 API
-2. **运行测试** — `cd /Users/ay/Desktop/app/ay-go-kit && go test ./... && go vet ./...`
+2. **运行测试** — `go test ./... && go vet ./...`
 3. **检查一致性**：
    - 包之间的依赖关系是否合理（dbx 不依赖 ginx，ginx 可依赖 dbx）
    - 导出的 API 命名是否统一
